@@ -281,7 +281,7 @@ echo "         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА! 🎉"
 echo "=================================================="
 echo "Роутер настроен. Запуск ядра sing-box..."
 killall -9 sing-box 2>/dev/null
-nohup ./sing-box run -c run.json > /dev/null 2>&1 &
+./sing-box run -c run.json > /dev/null 2>&1 &
 echo ""
 echo "Ваш IP-адрес роутера: $ROUTER_IP"
 echo ""
