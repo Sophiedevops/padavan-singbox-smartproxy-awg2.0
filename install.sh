@@ -1,8 +1,5 @@
 #!/bin/sh
 
-# === ИНИЦИАЛИЗАЦИЯ ПУТЕЙ ENTWARE ===
-export PATH="/opt/bin:/opt/sbin:/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
-
 # === НАСТРОЙКИ ===
 INSTALL_DIR="/opt/awg2_singbox"
 BACKUP_DIR="${INSTALL_DIR}.bak"
@@ -10,6 +7,9 @@ BIN_URL="https://github.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/relea
 GEOIP_URL="https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set"
 GEOSITE_URL="https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set"
 REPO_RAW="https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main"
+
+# Принудительно добавляем Entware в пути для текущей сессии скрипта
+export PATH="/opt/bin:/opt/sbin:/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
 
 echo "=================================================="
 echo "    SING-BOX ROUTING SETUP (v2.0) - Padavan Edition"
@@ -26,11 +26,12 @@ if [ "$FREE_RAM" -lt 25 ] || [ "$FREE_DISK" -lt 50 ]; then
     exit 1
 fi
 
-if ! command -v jq > /dev/null 2>&1; then
+# Железобетонная проверка jq по прямому физическому пути Entware
+if [ ! -x "/opt/bin/jq" ] && [ -z "$(which jq 2>/dev/null)" ]; then
     echo "  -> Утилита jq не найдена. Устанавливаем через opkg..."
-    opkg update > /dev/null 2>&1
-    opkg install jq > /dev/null 2>&1
-    if ! command -v jq > /dev/null 2>&1; then
+    /opt/bin/opkg update > /dev/null 2>&1
+    /opt/bin/opkg install jq > /dev/null 2>&1
+    if [ ! -x "/opt/bin/jq" ]; then
         echo "[ERROR] Не удалось установить jq. Проверьте работу Entware (opkg)!"
         exit 1
     fi
