@@ -3,7 +3,7 @@
 # === НАСТРОЙКИ ===
 INSTALL_DIR="/opt/awg2_singbox"
 BACKUP_DIR="${INSTALL_DIR}.bak"
-BIN_URL="https://github.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/releases/download/main/sing-box"
+BIN_URL="https://github.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/releases/download/1.0.0/sing-box"
 GEOIP_URL="https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set"
 GEOSITE_URL="https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set"
 REPO_RAW="https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main"
@@ -12,8 +12,9 @@ echo "=================================================="
 echo "    SING-BOX ROUTING SETUP (v2.0) - Padavan Edition"
 echo "=================================================="
 
-# === 1. ПРОВЕРКА РЕСУРСОВ ===
-echo "[1/6] Проверка системы..."
+# === 1. ПРОВЕРКА РЕСУРСОВ И ЗАВИСИМОСТЕЙ ===
+echo "[1/6] Проверка системы и зависимостей..."
+
 FREE_RAM=$(free -m | awk '/Mem:/ {print $4}')
 [ -z "$FREE_RAM" ] && FREE_RAM=$(grep MemFree /proc/meminfo | awk '{print int($2/1024)}')
 FREE_DISK=$(df -m /opt | awk 'NR==2 {print $4}')
@@ -21,6 +22,17 @@ FREE_DISK=$(df -m /opt | awk 'NR==2 {print $4}')
 if [ "$FREE_RAM" -lt 25 ] || [ "$FREE_DISK" -lt 50 ]; then
     echo "[ERROR] Мало ресурсов (RAM: ${FREE_RAM}MB, Disk: ${FREE_DISK}MB). Установка прервана."
     exit 1
+fi
+
+if ! command -v jq > /dev/null 2>&1; then
+    echo "  -> Утилита jq не найдена. Устанавливаем через opkg..."
+    opkg update > /dev/null 2>&1
+    opkg install jq > /dev/null 2>&1
+    if ! command -v jq > /dev/null 2>&1; then
+        echo "[ERROR] Не удалось установить jq. Проверьте работу Entware (opkg)!"
+        exit 1
+    fi
+    echo "  -> jq успешно установлен."
 fi
 
 # === 2. БЭКАП И ДИРЕКТОРИИ ===
@@ -155,7 +167,11 @@ RS_STR=""
 APP_TAGS=""
 
 add_rs() {
-    RS_STR="${RS_STR}, { \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }"
+    if [ -z "$RS_STR" ]; then
+        RS_STR="{ \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }"
+    else
+        RS_STR="${RS_STR}, { \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }"
+    fi
 }
 
 download_srs "ip" "geoip-ru"
@@ -218,7 +234,6 @@ cat << EOF > base.json
   ],
   "route": {
     "rule_set": [
-      { "tag": "dummy", "type": "local", "format": "binary", "path": "dummy.srs" }
       $RS_STR
     ],
     "rules": [
@@ -230,8 +245,6 @@ cat << EOF > base.json
 }
 EOF
 
-sed -i '/"tag": "dummy"/d' base.json
-
 # === 7. СКАЧИВАНИЕ СКРИПТОВ И ДИНАМИЧЕСКИХ КОНФИГОВ ===
 echo "[5/6] Загрузка скриптов сборки туннелей..."
 wget -q --no-check-certificate -O build.sh "$REPO_RAW/build.sh"
@@ -241,7 +254,6 @@ chmod +x build.sh
 echo "  -> Создание папки configs и автоматическая загрузка всех пресетов..."
 mkdir -p configs
 
-# Обращаемся к GitHub API, вытаскиваем все ссылки download_url из папки configs и качаем файлы
 wget -qO- --no-check-certificate "https://api.github.com/repos/Sophiedevops/padavan-singbox-smartproxy-awg2.0/contents/configs" | grep -o '"download_url": *"[^"]*"' | cut -d'"' -f4 | while read -r file_url; do
     if [ -n "$file_url" ] && [ "$file_url" != "null" ]; then
         filename=$(basename "$file_url")
