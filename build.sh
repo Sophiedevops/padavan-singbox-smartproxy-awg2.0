@@ -39,7 +39,7 @@ URLTEST_OUTBOUND=$(jq -n --argjson tags "$(cat "$TAGS_ARRAY")" '{
   outbounds: $tags,
   url: "https://www.cloudflare.com/cdn-cgi/trace",
   interval: "3m",
-  tolerance: 100
+  tolerance: 50
 }')
 
 # Сборка финального конфига БЕЗ перетирания route.final
