@@ -27,7 +27,11 @@
 ## 🚀 Установка
 
 Зайдите в терминал роутера (через SSH) и выполните две команды.
-`` wget --no-check-certificate -O install.sh [https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main/install.sh](https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main/install.sh) && chmod +x install.sh && ./install.sh
+```bash
+wget --no-check-certificate -O install.sh [https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main/install.sh](https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main/install.sh) && chmod +x install.sh && ./install.sh
+```
+---
+
 **Шаг 1. Перейдите в рабочую директорию флешки:**
 ## 📋 Требования
 
