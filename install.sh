@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# === ИНИЦИАЛИЗАЦИЯ ПУТЕЙ ENTWARE ===
+export PATH="/opt/bin:/opt/sbin:/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
+
 # === НАСТРОЙКИ ===
 INSTALL_DIR="/opt/awg2_singbox"
 BACKUP_DIR="${INSTALL_DIR}.bak"
@@ -14,7 +17,6 @@ echo "=================================================="
 
 # === 1. ПРОВЕРКА РЕСУРСОВ И ЗАВИСИМОСТЕЙ ===
 echo "[1/6] Проверка системы и зависимостей..."
-
 FREE_RAM=$(free -m | awk '/Mem:/ {print $4}')
 [ -z "$FREE_RAM" ] && FREE_RAM=$(grep MemFree /proc/meminfo | awk '{print int($2/1024)}')
 FREE_DISK=$(df -m /opt | awk 'NR==2 {print $4}')
