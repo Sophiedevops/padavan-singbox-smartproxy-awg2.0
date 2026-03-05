@@ -3,9 +3,10 @@
 # === НАСТРОЙКИ ===
 INSTALL_DIR="/opt/awg2_singbox"
 BACKUP_DIR="${INSTALL_DIR}.bak"
-BIN_URL="https://github.com/Sophiedevops/singbox-padavan-easy-crawler/releases/download/1.0.0/sing-box" # Замени на свой URL релиза
+BIN_URL="https://github.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/releases/download/1.0.0/sing-box"
 GEOIP_URL="https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set"
 GEOSITE_URL="https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set"
+REPO_RAW="https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main"
 
 echo "=================================================="
 echo "    SING-BOX ROUTING SETUP (v2.0) - Padavan Edition"
@@ -104,13 +105,12 @@ while true; do
 
                 case "$a_choice" in
                     q|Q) echo "Выход..."; cd /opt && rm -rf "$INSTALL_DIR"; exit 0 ;;
-                    b|B) break ;; # Возврат к первому `while`
-                    0) PROFILE="RU_SEL"; APPS=""; break 2 ;; # Выход из обоих `while`
+                    b|B) break ;;
+                    0) PROFILE="RU_SEL"; APPS=""; break 2 ;;
                     *)
                         PROFILE="RU_SEL"
                         APPS="$a_choice"
                         
-                        # Проверка на QUIC (Если выбран YouTube '1')
                         if echo "$APPS" | grep -q "1"; then
                             echo ""
                             echo "=================================================="
@@ -122,7 +122,7 @@ while true; do
                             read q_choice
                             [ "$q_choice" = "1" ] && DROP_QUIC="1"
                         fi
-                        break 2 # Выход из обоих `while`
+                        break 2
                         ;;
                 esac
             done
@@ -158,7 +158,6 @@ add_rs() {
     RS_STR="${RS_STR}, { \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }"
 }
 
-# Всегда качаем базу РФ для любой логики
 download_srs "ip" "geoip-ru"
 add_rs "geoip-ru"
 
@@ -169,7 +168,6 @@ if [ "$PROFILE" = "RU_SEL" ] && [ -n "$APPS" ]; then
     echo "$APPS" | grep -q "4" && { download_srs "site" "geosite-telegram"; add_rs "geosite-telegram"; APP_TAGS="${APP_TAGS}\"geosite-telegram\", "; }
     echo "$APPS" | grep -q "5" && { download_srs "site" "geosite-openai"; add_rs "geosite-openai"; APP_TAGS="${APP_TAGS}\"geosite-openai\", "; }
     echo "$APPS" | grep -q "6" && { download_srs "site" "geosite-twitter"; add_rs "geosite-twitter"; APP_TAGS="${APP_TAGS}\"geosite-twitter\", "; }
-    # Убираем последнюю запятую и пробел из списка тегов
     APP_TAGS=$(echo "$APP_TAGS" | sed 's/, $//')
 fi
 
@@ -232,28 +230,43 @@ cat << EOF > base.json
 }
 EOF
 
-# Удаляем "dummy" костыль (нужен был для запятых)
 sed -i '/"tag": "dummy"/d' base.json
 
-echo "[5/6] Ожидание генератора туннелей (build.sh)..."
-# Здесь ты можешь скачать и запустить свой скрипт build.sh (раскомментируй и поправь ссылку, если нужно)
-# wget -q --no-check-certificate -O build.sh "ТВОЯ_ССЫЛКА_НА_BUILD_SH"
-# chmod +x build.sh
-# ./build.sh
+# === 7. СКАЧИВАНИЕ СКРИПТОВ И ДИНАМИЧЕСКИХ КОНФИГОВ ===
+echo "[5/6] Загрузка скриптов сборки туннелей..."
+wget -q --no-check-certificate -O build.sh "$REPO_RAW/build.sh"
+wget -q --no-check-certificate -O parse_conf.lua "$REPO_RAW/parse_conf.lua"
+chmod +x build.sh
 
-# === 7. ФИНАЛЬНЫЙ ВЫВОД И ССЫЛКИ ===
+echo "  -> Создание папки configs и автоматическая загрузка всех пресетов..."
+mkdir -p configs
+
+# Обращаемся к GitHub API, вытаскиваем все ссылки download_url из папки configs и качаем файлы
+wget -qO- --no-check-certificate "https://api.github.com/repos/Sophiedevops/padavan-singbox-smartproxy-awg2.0/contents/configs" | grep -o '"download_url": *"[^"]*"' | cut -d'"' -f4 | while read -r file_url; do
+    if [ -n "$file_url" ] && [ "$file_url" != "null" ]; then
+        filename=$(basename "$file_url")
+        echo "     Загрузка: $filename"
+        wget -q --no-check-certificate -O "configs/$filename" "$file_url"
+    fi
+done
+
+echo "  -> Сборка балансировщика..."
+./build.sh
+
+# === 8. ФИНАЛЬНЫЙ ВЫВОД И ССЫЛКИ ===
 echo "[6/6] Завершение..."
 
 ROUTER_IP=$(nvram get lan_ipaddr 2>/dev/null || echo "192.168.1.1")
-SS_CRED=$(echo -n "none:" | base64 | tr -d '\n')
+SS_CRED="bm9uZTo="
 SS_LINK="ss://${SS_CRED}@${ROUTER_IP}:30183#Padavan-SmartProxy"
 
 echo ""
 echo "=================================================="
 echo "         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА! 🎉"
 echo "=================================================="
-echo "Роутер настроен. Если build.sh отработал, запустите ядро:"
-echo "cd $INSTALL_DIR && ./sing-box run -c run.json &"
+echo "Роутер настроен. Запуск ядра sing-box..."
+killall -9 sing-box 2>/dev/null
+nohup ./sing-box run -c run.json > /dev/null 2>&1 &
 echo ""
 echo "Ваш IP-адрес роутера: $ROUTER_IP"
 echo ""
