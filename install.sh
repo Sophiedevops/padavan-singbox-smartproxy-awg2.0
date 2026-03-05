@@ -3,7 +3,7 @@
 # === НАСТРОЙКИ ===
 INSTALL_DIR="/opt/awg2_singbox"
 BACKUP_DIR="${INSTALL_DIR}.bak"
-BIN_URL="https://github.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/releases/download/1.0.0/sing-box"
+BIN_URL="https://github.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/releases/download/main/sing-box"
 GEOIP_URL="https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set"
 GEOSITE_URL="https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set"
 REPO_RAW="https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main"
