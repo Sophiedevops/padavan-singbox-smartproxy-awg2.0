@@ -116,7 +116,25 @@ cd /opt && ./install.sh
 3. 🗑️ В появившемся меню выберите **«2 — Удалить старую папку полностью»**
 
 4. 🎉 Скрипт установится «начисто», подтянет ваши новые конфиги и соберёт свежий балансировщик!
+// REFERENCE
+<details>
+<summary>📋 &nbsp;<b>Таблица-памятка (шпаргалка) по типам переменных AmneziaWG</b> &nbsp;— нажмите чтобы развернуть</summary>
+<br>
 
+🧩 Справочник по параметрам конфигурации sing-box для протокола AmneziaWG. Типы данных критичны — неверный тип (строка вместо числа) приведёт к ошибке парсинга конфига.
+
+<div align="center">
+ПАРАМЕТРОПИСАНИЕТИП В JSONПРИМЕРserverIP-адрес или домен VPS сервераString · Строка"123.45.67.89"server_portПорт сервераInteger · Целое51820 ⚠️ без кавычекsystem_interfaceИспользовать ли системный интерфейсBoolean · Логическийtrue или falseinterface_nameНазвание сетевого интерфейсаString · Строка"awg0"local_addressВнутренний IP клиента (из блока [Interface])Array of Strings · Массив["10.8.0.2/24"]private_keyПриватный ключ клиентаString · Строка"aBcDeF..."peer_public_keyПубличный ключ сервераString · Строка"XyZaBc..."jcJunk packet countInteger · Целое120 ⚠️ без кавычекjminJunk packet minimum sizeInteger · Целое23 ⚠️ без кавычекjmaxJunk packet maximum sizeInteger · Целое91 ⚠️ без кавычекs1Init packet junk sizeInteger · Целое0 ⚠️ без кавычекs2Response packet junk sizeInteger · Целое0 ⚠️ без кавычекh1Init packet magic headerInteger · Целое1 ⚠️ без кавычекh2Response packet magic headerInteger · Целое2 ⚠️ без кавычекh3Underload packet magic headerInteger · Целое3 ⚠️ без кавычекh4Transport packet magic headerInteger · Целое4 ⚠️ без кавычек
+</div>
+
+[!TIP]
+⚠️ Частая ошибка: Параметры server_port, jc, jmin, jmax, s1, s2, h1–h4 — это Integer. Если обернуть их в кавычки "120" — sing-box выдаст ошибку при запуске. Только server, interface_name, private_key, peer_public_key и local_address являются строками/массивами строк.
+
+</details>
+
+<div align="center">
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer&text=SagerNet%20geosite%20%26%20geoip&fontSize=18&fontColor=00f5ff&animation=twinkling&fontAlignY=65"/>
+</div>
 *Проект создан для удобной маршрутизации домашнего трафика.*
 *Базы `geosite` и `geoip` скачиваются напрямую из официальных репозиториев **SagerNet**.*
 
