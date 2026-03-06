@@ -118,23 +118,36 @@ cd /opt && ./install.sh
 4. 🎉 Скрипт установится «начисто», подтянет ваши новые конфиги и соберёт свежий балансировщик!
 // REFERENCE
 <details>
+<details>
 <summary>📋 &nbsp;<b>Таблица-памятка (шпаргалка) по типам переменных AmneziaWG</b> &nbsp;— нажмите чтобы развернуть</summary>
+
 <br>
 
-🧩 Справочник по параметрам конфигурации sing-box для протокола AmneziaWG. Типы данных критичны — неверный тип (строка вместо числа) приведёт к ошибке парсинга конфига.
+> 🧩 Справочник по параметрам конфигурации `sing-box` для протокола **AmneziaWG**. Типы данных критичны — неверный тип (строка вместо числа) приведёт к ошибке парсинга конфига.
 
-<div align="center">
-ПАРАМЕТРОПИСАНИЕТИП В JSONПРИМЕРserverIP-адрес или домен VPS сервераString · Строка"123.45.67.89"server_portПорт сервераInteger · Целое51820 ⚠️ без кавычекsystem_interfaceИспользовать ли системный интерфейсBoolean · Логическийtrue или falseinterface_nameНазвание сетевого интерфейсаString · Строка"awg0"local_addressВнутренний IP клиента (из блока [Interface])Array of Strings · Массив["10.8.0.2/24"]private_keyПриватный ключ клиентаString · Строка"aBcDeF..."peer_public_keyПубличный ключ сервераString · Строка"XyZaBc..."jcJunk packet countInteger · Целое120 ⚠️ без кавычекjminJunk packet minimum sizeInteger · Целое23 ⚠️ без кавычекjmaxJunk packet maximum sizeInteger · Целое91 ⚠️ без кавычекs1Init packet junk sizeInteger · Целое0 ⚠️ без кавычекs2Response packet junk sizeInteger · Целое0 ⚠️ без кавычекh1Init packet magic headerInteger · Целое1 ⚠️ без кавычекh2Response packet magic headerInteger · Целое2 ⚠️ без кавычекh3Underload packet magic headerInteger · Целое3 ⚠️ без кавычекh4Transport packet magic headerInteger · Целое4 ⚠️ без кавычек
-</div>
+| `ПАРАМЕТР` | `ОПИСАНИЕ` | `ТИП В JSON` | `ПРИМЕР` |
+|:---|:---|:---:|:---|
+| `server` | IP-адрес или домен VPS сервера | **String** · Строка | `"123.45.67.89"` |
+| `server_port` | Порт сервера | **Integer** · Целое | `51820` ⚠️ *без кавычек* |
+| `system_interface` | Использовать ли системный интерфейс | **Boolean** · Логический | `true` или `false` |
+| `interface_name` | Название сетевого интерфейса | **String** · Строка | `"awg0"` |
+| `local_address` | Внутренний IP клиента (из блока `[Interface]`) | **Array of Strings** · Массив | `["10.8.0.2/24"]` |
+| `private_key` | Приватный ключ клиента | **String** · Строка | `"aBcDeF..."` |
+| `peer_public_key` | Публичный ключ сервера | **String** · Строка | `"XyZaBc..."` |
+| `jc` | Junk packet count | **Integer** · Целое | `120` ⚠️ *без кавычек* |
+| `jmin` | Junk packet minimum size | **Integer** · Целое | `23` ⚠️ *без кавычек* |
+| `jmax` | Junk packet maximum size | **Integer** · Целое | `91` ⚠️ *без кавычек* |
+| `s1` | Init packet junk size | **Integer** · Целое | `0` ⚠️ *без кавычек* |
+| `s2` | Response packet junk size | **Integer** · Целое | `0` ⚠️ *без кавычек* |
+| `h1` | Init packet magic header | **Integer** · Целое | `1` ⚠️ *без кавычек* |
+| `h2` | Response packet magic header | **Integer** · Целое | `2` ⚠️ *без кавычек* |
+| `h3` | Underload packet magic header | **Integer** · Целое | `3` ⚠️ *без кавычек* |
+| `h4` | Transport packet magic header | **Integer** · Целое | `4` ⚠️ *без кавычек* |
 
-[!TIP]
-⚠️ Частая ошибка: Параметры server_port, jc, jmin, jmax, s1, s2, h1–h4 — это Integer. Если обернуть их в кавычки "120" — sing-box выдаст ошибку при запуске. Только server, interface_name, private_key, peer_public_key и local_address являются строками/массивами строк.
+> [!TIP]
+> **⚠️ Частая ошибка:** Параметры `server_port`, `jc`, `jmin`, `jmax`, `s1`, `s2`, `h1`–`h4` — это **Integer**. Если обернуть их в кавычки `"120"` — `sing-box` выдаст ошибку при запуске. Только `server`, `interface_name`, `private_key`, `peer_public_key` и `local_address` являются строками/массивами строк.
 
 </details>
-
-<div align="center">
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=120&section=footer&text=SagerNet%20geosite%20%26%20geoip&fontSize=18&fontColor=00f5ff&animation=twinkling&fontAlignY=65"/>
-</div>
 *Проект создан для удобной маршрутизации домашнего трафика.*
 *Базы `geosite` и `geoip` скачиваются напрямую из официальных репозиториев **SagerNet**.*
 
