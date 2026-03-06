@@ -1,4 +1,6 @@
 # padavan-singbox-smartproxy-awg2.0
+![Static Badge](https://img.shields.io/badge/Language-Bash-blue) ![Static Badge](https://img.shields.io/badge/Language-Lua-yellow)
+![Static Badge](https://img.shields.io/badge/github-repo-green)
 Умный прокси-сервер на базе sing-box и AmneziaWG 1.5-2.0 для роутеров Padavan. Интерактивная гео-маршрутизация, точечный обход блокировок и минимальное потребление ресурсов (SOCKS5/HTTP/Shadowsocks)
 
 # Padavan SmartProxy (sing-box + AmneziaWG) 🚀
@@ -60,7 +62,7 @@ sleep 10
 * Загрузите ваши файлы .conf от AmneziaWG в папку configs в этом репозитории на GitHub.
 
 * > [!IMPORTANT]
-> **Файлы *.conf:** Скрипт автоматически сканирует туннели и выбирает с наименьшим ping, поэтому старайтесь не держать большое количество неиспользуемых конфигураций в папке configs.
+> * **Файлы *.conf:** Скрипт автоматически сканирует туннели и выбирает с наименьшим ping, поэтому старайтесь не держать большое количество неиспользуемых конфигураций в папке configs.
 > 
 ---
 
