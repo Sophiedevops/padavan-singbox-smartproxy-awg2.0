@@ -49,7 +49,7 @@
 <summary>🇷🇺 <b>Профиль RU — Точечный обход</b> — показать описание</summary>
 <br>
 Локальный трафик идет напрямую провайдеру, а в туннель уходят только выбранные заблокированные сервисы:<br><br>
-📺 YouTube &nbsp;|&nbsp; 👥 Meta &nbsp;|&nbsp; ✈️ Telegram &nbsp;|&nbsp; 🤖 OpenAI/ChatGPT &nbsp;|&nbsp; 🐦 X/Twitter
+▶️ YouTube &nbsp;|&nbsp; 📘 Meta &nbsp;|&nbsp; 📨 Telegram &nbsp;|&nbsp; ✨ OpenAI/ChatGPT &nbsp;|&nbsp; ❌ X/Twitter
 </details>
 
 <details>
