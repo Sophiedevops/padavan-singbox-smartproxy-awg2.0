@@ -1,5 +1,9 @@
 #!/bin/sh
 
+cd /opt/awg2_singbox || exit 1
+
+echo ">>> Начинаем сборку конфигурации из configs/*.conf"
+
 CONFIG_DIR="configs"
 BASE_JSON="base.json"
 RUN_JSON="run.json"
