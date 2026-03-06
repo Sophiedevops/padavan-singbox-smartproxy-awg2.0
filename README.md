@@ -104,11 +104,14 @@ sleep 10
 
 1. 📤 Загрузите ваши файлы `.conf` от AmneziaWG в папку `configs` на роутере, удалив неиспользуемые/нерабочие.
 2.     Выполните команду
-    ```bash
-    /opt/awg2_singbox/build.sh
-    ```
-    # для пересборки **run.json** с новыми параметрами.
-4.     Перезапустите сервив командой
+
+   ```bash
+   /opt/awg2_singbox/build.sh
+   ```
+     для пересборки **run.json** с новыми параметрами.
+
+3.    Перезапустите сервив командой
+ 
   ```bash
   /opt/awg2_singbox/sing-box run -c /opt/awg2_singbox/run.json > /dev/null 2>&1 &
   ```
