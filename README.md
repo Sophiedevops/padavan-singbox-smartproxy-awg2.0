@@ -107,11 +107,11 @@ sleep 10
     ```bash
     /opt/awg2_singbox/build.sh
     ```
-     для пересборки **run.json** с новыми параметрами.
+    # для пересборки **run.json** с новыми параметрами.
 4.     Перезапустите сервив командой
-5.  ```bash
-6.  /opt/awg2_singbox/sing-box run -c /opt/awg2_singbox/run.json > /dev/null 2>&1 &
-7.  ```
+  ```bash
+  /opt/awg2_singbox/sing-box run -c /opt/awg2_singbox/run.json > /dev/null 2>&1 &
+  ```
     
 > [!IMPORTANT]
 > **📌 Файлы `*.conf`:** Скрипт автоматически сканирует туннели и выбирает с наименьшим ping, поэтому старайтесь не держать большое количество неиспользуемых конфигураций в папке `configs`.
