@@ -26,7 +26,6 @@ if [ "$FREE_RAM" -lt 25 ] || [ "$FREE_DISK" -lt 50 ]; then
     exit 1
 fi
 
-# Железобетонная проверка jq по прямому физическому пути Entware
 if [ ! -x "/opt/bin/jq" ] && [ -z "$(which jq 2>/dev/null)" ]; then
     echo "  -> Утилита jq не найдена. Устанавливаем через opkg..."
     /opt/bin/opkg update > /dev/null 2>&1
@@ -125,7 +124,6 @@ while true; do
                     *)
                         PROFILE="RU_SEL"
                         APPS="$a_choice"
-                        
                         if echo "$APPS" | grep -q "1"; then
                             echo ""
                             echo "=================================================="
@@ -219,21 +217,21 @@ cat << EOF > base.json
   "dns": {
     "servers": [
       { "tag": "yandex-udp", "type": "udp", "server": "77.88.8.8" },
-      { "tag": "cf-doh", "type": "https", "server": "1.1.1.1", "server_name": "cloudflare-dns.com" },
-      { "tag": "cf-dot", "type": "tls", "server": "1.0.0.1", "server_name": "cloudflare-dns.com" },
-      { "tag": "cf-doq", "type": "quic", "server": "1.1.1.1", "server_name": "cloudflare-dns.com" },
-      { "tag": "google-doh", "type": "https", "server": "8.8.8.8", "server_name": "dns.google" },
-      { "tag": "google-dot", "type": "tls", "server": "8.8.4.4", "server_name": "dns.google" },
-      { "tag": "quad9-doh", "type": "https", "server": "9.9.9.9", "server_name": "dns.quad9.net" },
-      { "tag": "quad9-dot", "type": "tls", "server": "149.112.112.112", "server_name": "dns.quad9.net" },
-      { "tag": "quad9-doq", "type": "quic", "server": "9.9.9.9", "server_name": "dns.quad9.net" },
-      { "tag": "adguard-doh", "type": "https", "server": "94.140.14.14", "server_name": "dns.adguard-dns.com" },
-      { "tag": "adguard-dot", "type": "tls", "server": "94.140.14.15", "server_name": "dns.adguard-dns.com" },
-      { "tag": "adguard-doq", "type": "quic", "server": "94.140.14.14", "server_name": "dns.adguard-dns.com" },
-      { "tag": "alidns-doh", "type": "https", "server": "223.5.5.5", "server_name": "dns.alidns.com" },
-      { "tag": "alidns-doq", "type": "quic", "server": "223.6.6.6", "server_name": "dns.alidns.com" },
-      { "tag": "mullvad-doh", "type": "https", "server": "194.242.2.2", "server_name": "dns.mullvad.net" },
-      { "tag": "mullvad-dot", "type": "tls", "server": "194.242.2.3", "server_name": "dns.mullvad.net" }
+      { "tag": "cf-doh", "type": "https", "server": "1.1.1.1" },
+      { "tag": "cf-dot", "type": "tls", "server": "1.0.0.1" },
+      { "tag": "cf-doq", "type": "quic", "server": "1.1.1.1" },
+      { "tag": "google-doh", "type": "https", "server": "8.8.8.8" },
+      { "tag": "google-dot", "type": "tls", "server": "8.8.4.4" },
+      { "tag": "quad9-doh", "type": "https", "server": "9.9.9.9" },
+      { "tag": "quad9-dot", "type": "tls", "server": "149.112.112.112" },
+      { "tag": "quad9-doq", "type": "quic", "server": "9.9.9.9" },
+      { "tag": "adguard-doh", "type": "https", "server": "94.140.14.14" },
+      { "tag": "adguard-dot", "type": "tls", "server": "94.140.14.15" },
+      { "tag": "adguard-doq", "type": "quic", "server": "94.140.14.14" },
+      { "tag": "alidns-doh", "type": "https", "server": "223.5.5.5" },
+      { "tag": "alidns-doq", "type": "quic", "server": "223.6.6.6" },
+      { "tag": "mullvad-doh", "type": "https", "server": "194.242.2.2" },
+      { "tag": "mullvad-dot", "type": "tls", "server": "194.242.2.3" }
     ],
     "rules": [
       { "rule_set": ["geoip-ru"], "server": "yandex-udp" },
@@ -256,9 +254,7 @@ cat << EOF > base.json
     { "type": "block", "tag": "block" }
   ],
   "route": {
-    "rule_set": [
-      $RS_STR
-    ],
+    "rule_set": [ $RS_STR ],
     "rules": [
       { "protocol": "dns", "outbound": "direct" }
       $RULES_STR
@@ -268,21 +264,18 @@ cat << EOF > base.json
 }
 EOF
 
-# Патчим конфиг, если юзер выбрал [ 1 ] Украина (UA)
 if [ "$PROFILE" = "UA" ]; then
     echo "  -> Активация режима Full DoH (удаление серверов Яндекса)..."
     jq 'del(.dns.servers[] | select(.tag=="yandex-udp")) | del(.dns.rules[] | select(.server=="yandex-udp"))' base.json > base_tmp.json && mv base_tmp.json base.json
 fi
 
-# === 7. СКАЧИВАНИЕ СКРИПТОВ И ДИНАМИЧЕСКИХ КОНФИГОВ ===
+# === 7. СКАЧИВАНИЕ СКРИПТОВ ===
 echo "[5/6] Загрузка скриптов сборки туннелей..."
 wget -q --no-check-certificate -O build.sh "$REPO_RAW/build.sh"
 wget -q --no-check-certificate -O parse_conf.lua "$REPO_RAW/parse_conf.lua"
 chmod +x build.sh
 
-echo "  -> Создание папки configs и автоматическая загрузка всех пресетов..."
 mkdir -p configs
-
 wget -qO- --no-check-certificate "https://api.github.com/repos/Sophiedevops/padavan-singbox-smartproxy-awg2.0/contents/configs" | grep -o '"download_url": *"[^"]*"' | cut -d'"' -f4 | while read -r file_url; do
     if [ -n "$file_url" ] && [ "$file_url" != "null" ]; then
         filename=$(basename "$file_url")
@@ -294,9 +287,8 @@ done
 echo "  -> Сборка балансировщика..."
 ./build.sh
 
-# === 8. ФИНАЛЬНЫЙ ВЫВОД И ССЫЛКИ ===
+# === 8. ФИНАЛ ===
 echo "[6/6] Завершение..."
-
 ROUTER_IP=$(nvram get lan_ipaddr 2>/dev/null || echo "192.168.1.1")
 SS_CRED="bm9uZTo="
 SS_LINK="ss://${SS_CRED}@${ROUTER_IP}:30183#Padavan-SmartProxy"
@@ -305,24 +297,8 @@ echo ""
 echo "=================================================="
 echo "         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА! 🎉"
 echo "=================================================="
-echo "Роутер настроен. Запуск ядра sing-box..."
-killall -9 sing-box 2>/dev/null
 ./sing-box run -c run.json > /dev/null 2>&1 &
-echo ""
 echo "Ваш IP-адрес роутера: $ROUTER_IP"
-echo ""
-echo "📺 ДЛЯ ТЕЛЕВИЗОРА (Smart TV, Apple TV):"
-echo "  Тип:  HTTP Прокси "
-echo "  IP:   $ROUTER_IP"
-echo "  Порт: 1080"
-echo ""
-echo "💻 ДЛЯ БРАУЗЕРОВ (ПК) И TELEGRAM:"
-echo "  Тип:  SOCKS5 "
-echo "  IP:   $ROUTER_IP"
-echo "  Порт: 1081 (а также 1082, 1083)"
-echo ""
-echo "📱 ДЛЯ ТЕЛЕФОНОВ (v2rayNG / NekoBox / Streisand):"
-echo "  Скопируйте эту ссылку:"
-echo -e "  \033[1;32m$SS_LINK\033[0m"
+echo "Прокси: HTTP 1080 / SOCKS 1081-1083"
+echo -e "📱 SS Link: \033[1;32m$SS_LINK\033[0m"
 echo "=================================================="
-echo ""
