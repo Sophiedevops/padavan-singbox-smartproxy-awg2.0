@@ -93,7 +93,7 @@ for conf_file in configs_valid/*.conf; do
     fi
 done
 
-URLTEST_OUTBOUND=$(jq -n --argjson tags "$(cat "$TAGS_ARRAY")" '{"type":"urltest","tag":"auto-balancer","outbounds":$tags,"url":"https://www.cloudflare.com/cdn-cgi/trace","interval":"3m","tolerance":100}')
+URLTEST_OUTBOUND=$(jq -n --argjson tags "$(cat "$TAGS_ARRAY")" '{"type":"urltest","tag":"auto-balancer","outbounds":$tags,"url":"https://www.cloudflare.com/cdn-cgi/trace","interval":"3m","tolerance":50}')
 jq --argjson eps "$(cat "$EP_ARRAY")" --argjson urltest "$URLTEST_OUTBOUND" '.endpoints = ($eps + (.endpoints // [])) | .outbounds = ([$urltest] + (.outbounds // []))' "$BASE_JSON" > "$RUN_JSON"
 
 rm -f "$EP_ARRAY" "$TAGS_ARRAY" "${EP_ARRAY}.tmp" "${TAGS_ARRAY}.tmp"
