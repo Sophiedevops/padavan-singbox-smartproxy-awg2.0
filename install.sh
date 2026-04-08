@@ -8,7 +8,6 @@ GEOIP_URL="https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set"
 GEOSITE_URL="https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set"
 REPO_RAW="https://raw.githubusercontent.com/Sophiedevops/padavan-singbox-smartproxy-awg2.0/main"
 
-# Принудительно добавляем Entware в пути для текущей сессии скрипта
 export PATH="/opt/bin:/opt/sbin:/bin:/sbin:/usr/bin:/usr/sbin:$PATH"
 
 echo "=================================================="
@@ -66,15 +65,14 @@ cd "$INSTALL_DIR" || exit 1
 echo "[2/6] Загрузка и проверка ядра sing-box..."
 wget -q --no-check-certificate -O sing-box "$BIN_URL"
 if [ ! -s "sing-box" ]; then
-    echo "[ERROR] Ошибка скачивания sing-box! Ссылка битая или нет интернета."
+    echo "[ERROR] Ошибка скачивания sing-box!"
     cd /opt && rm -rf "$INSTALL_DIR"
     exit 1
 fi
 
 chmod +x sing-box
 if ! ./sing-box version > /dev/null 2>&1; then
-    echo "[ERROR] Ядро несовместимо с архитектурой роутера! (Segfault/Not found)"
-    echo "Очистка мусора..."
+    echo "[ERROR] Ядро несовместимо с архитектурой роутера!"
     cd /opt && rm -rf "$INSTALL_DIR"
     exit 1
 fi
@@ -104,40 +102,23 @@ while true; do
             while true; do
                 echo ""
                 echo "Какие сервисы ПРИНУДИТЕЛЬНО заворачивать в туннель?"
-                echo "(Введите цифры через запятую, например: 1,3,4)"
                 echo "[ 1 ] YouTube (Обход замедления)"
                 echo "[ 2 ] Instagram / Facebook (Meta)"
-                echo "[ 3 ] WhatsApp (Стабильные голосовые звонки и медиа)"
-                echo "[ 4 ] Telegram (Обход блокировки дата-центров)"
+                echo "[ 3 ] WhatsApp (Медиа и звонки)"
+                echo "[ 4 ] Telegram (Проксирование DC)"
                 echo "[ 5 ] OpenAI / ChatGPT"
                 echo "[ 6 ] X (Twitter)"
                 echo ""
-                echo "[ b ] Вернуться назад к выбору региона"
-                echo "[ q ] Выход"
-                printf "Ваш выбор (или 0 для отмены): "
+                printf "Ваш выбор (цифры через запятую): "
                 read a_choice
-
-                case "$a_choice" in
-                    q|Q) echo "Выход..."; cd /opt && rm -rf "$INSTALL_DIR"; exit 0 ;;
-                    b|B) break ;;
-                    0) PROFILE="RU_SEL"; APPS=""; break 2 ;;
-                    *)
-                        PROFILE="RU_SEL"
-                        APPS="$a_choice"
-                        if echo "$APPS" | grep -q "1"; then
-                            echo ""
-                            echo "=================================================="
-                            echo "НАСТРОЙКА YOUTUBE: QUIC (UDP 443)"
-                            echo "Желаете включить экспериментальную блокировку QUIC для YouTube?"
-                            echo "[ 1 ] Да, включить (Рекомендуется)"
-                            echo "[ 2 ] Нет, стандартная маршрутизация"
-                            printf "Ваш выбор: "
-                            read q_choice
-                            [ "$q_choice" = "1" ] && DROP_QUIC="1"
-                        fi
-                        break 2
-                        ;;
-                esac
+                PROFILE="RU_SEL"
+                APPS="$a_choice"
+                if echo "$APPS" | grep -q "1"; then
+                    echo "Блокировать QUIC для YouTube? [1 - Да / 2 - Нет]: "
+                    read q_choice
+                    [ "$q_choice" = "1" ] && DROP_QUIC="1"
+                fi
+                break 2
             done
             ;;
         *) echo "Неверный выбор." ;;
@@ -149,30 +130,16 @@ echo ""
 echo "[3/6] Скачивание гео-баз..."
 
 download_srs() {
-    local TYPE="$1"
     local NAME="$2"
-    local URL=""
-    [ "$TYPE" = "ip" ] && URL="$GEOIP_URL/${NAME}.srs"
-    [ "$TYPE" = "site" ] && URL="$GEOSITE_URL/${NAME}.srs"
-    
     echo "  -> Загрузка $NAME.srs..."
-    wget -q --no-check-certificate -O "$NAME.srs" "$URL"
-    if [ $? -ne 0 ] || [ ! -s "$NAME.srs" ]; then
-        echo "[ERROR] Ошибка загрузки $NAME.srs! Установка прервана."
-        cd /opt && rm -rf "$INSTALL_DIR"
-        exit 1
-    fi
+    wget -q --no-check-certificate -O "$NAME.srs" "$([ "$1" = "ip" ] && echo $GEOIP_URL || echo $GEOSITE_URL)/${NAME}.srs"
 }
 
 RS_STR=""
 APP_TAGS=""
-
 add_rs() {
-    if [ -z "$RS_STR" ]; then
-        RS_STR="{ \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }"
-    else
-        RS_STR="${RS_STR}, { \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }"
-    fi
+    [ -z "$RS_STR" ] && RS_STR="{ \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }" \
+    || RS_STR="${RS_STR}, { \"tag\": \"$1\", \"type\": \"local\", \"format\": \"binary\", \"path\": \"$1.srs\" }"
 }
 
 download_srs "ip" "geoip-ru"
@@ -196,19 +163,13 @@ FINAL_OUTBOUND="direct"
 
 if [ "$PROFILE" = "UA" ]; then
     RULES_STR="${RULES_STR}, { \"rule_set\": [\"geoip-ru\"], \"outbound\": \"auto-balancer\" }"
-    FINAL_OUTBOUND="direct"
 elif [ "$PROFILE" = "RU_ALL" ]; then
     RULES_STR="${RULES_STR}, { \"rule_set\": [\"geoip-ru\"], \"outbound\": \"direct\" }"
     FINAL_OUTBOUND="auto-balancer"
 elif [ "$PROFILE" = "RU_SEL" ]; then
     RULES_STR="${RULES_STR}, { \"rule_set\": [\"geoip-ru\"], \"outbound\": \"direct\" }"
-    if [ "$DROP_QUIC" = "1" ]; then
-        RULES_STR="${RULES_STR}, { \"protocol\": \"quic\", \"rule_set\": [\"geosite-youtube\"], \"action\": \"reject\" }"
-    fi
-    if [ -n "$APP_TAGS" ]; then
-        RULES_STR="${RULES_STR}, { \"rule_set\": [${APP_TAGS}], \"outbound\": \"auto-balancer\" }"
-    fi
-    FINAL_OUTBOUND="direct"
+    [ "$DROP_QUIC" = "1" ] && RULES_STR="${RULES_STR}, { \"protocol\": \"quic\", \"rule_set\": [\"geosite-youtube\"], \"action\": \"reject\" }"
+    [ -n "$APP_TAGS" ] && RULES_STR="${RULES_STR}, { \"rule_set\": [${APP_TAGS}], \"outbound\": \"auto-balancer\" }"
 fi
 
 cat << EOF > base.json
@@ -219,28 +180,16 @@ cat << EOF > base.json
       { "tag": "yandex-udp", "type": "udp", "server": "77.88.8.8" },
       { "tag": "cf-doh", "type": "https", "server": "1.1.1.1" },
       { "tag": "cf-dot", "type": "tls", "server": "1.0.0.1" },
-      { "tag": "cf-doq", "type": "quic", "server": "1.1.1.1" },
       { "tag": "google-doh", "type": "https", "server": "8.8.8.8" },
-      { "tag": "google-dot", "type": "tls", "server": "8.8.4.4" },
       { "tag": "quad9-doh", "type": "https", "server": "9.9.9.9" },
-      { "tag": "quad9-dot", "type": "tls", "server": "149.112.112.112" },
-      { "tag": "quad9-doq", "type": "quic", "server": "9.9.9.9" },
       { "tag": "adguard-doh", "type": "https", "server": "94.140.14.14" },
-      { "tag": "adguard-dot", "type": "tls", "server": "94.140.14.15" },
-      { "tag": "adguard-doq", "type": "quic", "server": "94.140.14.14" },
-      { "tag": "alidns-doh", "type": "https", "server": "223.5.5.5" },
-      { "tag": "alidns-doq", "type": "quic", "server": "223.6.6.6" },
-      { "tag": "mullvad-doh", "type": "https", "server": "194.242.2.2" },
-      { "tag": "mullvad-dot", "type": "tls", "server": "194.242.2.3" }
+      { "tag": "alidns-doh", "type": "https", "server": "223.5.5.5" }
     ],
     "rules": [
       { "rule_set": ["geoip-ru"], "server": "yandex-udp" },
       { "outbound": ["any"], "server": "cf-doh" }
     ],
-    "final": "google-doh",
-    "strategy": "prefer_ipv4",
-    "disable_cache": false,
-    "independent_cache": true
+    "final": "google-doh", "strategy": "prefer_ipv4"
   },
   "inbounds": [
     { "type": "http", "tag": "http-tv", "listen": "0.0.0.0", "listen_port": 1080 },
@@ -264,31 +213,26 @@ cat << EOF > base.json
 }
 EOF
 
-if [ "$PROFILE" = "UA" ]; then
-    echo "  -> Активация режима Full DoH (удаление серверов Яндекса)..."
-    jq 'del(.dns.servers[] | select(.tag=="yandex-udp")) | del(.dns.rules[] | select(.server=="yandex-udp"))' base.json > base_tmp.json && mv base_tmp.json base.json
-fi
+[ "$PROFILE" = "UA" ] && jq 'del(.dns.servers[] | select(.tag=="yandex-udp")) | del(.dns.rules[] | select(.server=="yandex-udp"))' base.json > b_tmp.json && mv b_tmp.json base.json
 
 # === 7. СКАЧИВАНИЕ СКРИПТОВ ===
-echo "[5/6] Загрузка скриптов сборки туннелей..."
+echo "[5/6] Загрузка скриптов сборки..."
 wget -q --no-check-certificate -O build.sh "$REPO_RAW/build.sh"
 wget -q --no-check-certificate -O parse_conf.lua "$REPO_RAW/parse_conf.lua"
 chmod +x build.sh
-
 mkdir -p configs
-wget -qO- --no-check-certificate "https://api.github.com/repos/Sophiedevops/padavan-singbox-smartproxy-awg2.0/contents/configs" | grep -o '"download_url": *"[^"]*"' | cut -d'"' -f4 | while read -r file_url; do
-    if [ -n "$file_url" ] && [ "$file_url" != "null" ]; then
-        filename=$(basename "$file_url")
-        echo "     Загрузка: $filename"
-        wget -q --no-check-certificate -O "configs/$filename" "$file_url"
-    fi
+wget -qO- --no-check-certificate "https://api.github.com/repos/Sophiedevops/padavan-singbox-smartproxy-awg2.0/contents/configs" | grep -o '"download_url": *"[^"]*"' | cut -d'"' -f4 | while read -r url; do
+    filename=$(basename "$url")
+    echo "     Загрузка: $filename"
+    wget -q --no-check-certificate -O "configs/$filename" "$url"
 done
 
 echo "  -> Сборка балансировщика..."
 ./build.sh
 
-# === 8. ФИНАЛ ===
+# === 8. ФИНАЛЬНЫЙ ВЫВОД «ПО-БОГАТОМУ» ===
 echo "[6/6] Завершение..."
+
 ROUTER_IP=$(nvram get lan_ipaddr 2>/dev/null || echo "192.168.1.1")
 SS_CRED="bm9uZTo="
 SS_LINK="ss://${SS_CRED}@${ROUTER_IP}:30183#Padavan-SmartProxy"
@@ -297,8 +241,24 @@ echo ""
 echo "=================================================="
 echo "         УСТАНОВКА УСПЕШНО ЗАВЕРШЕНА! 🎉"
 echo "=================================================="
+echo "Роутер настроен. Запуск ядра sing-box..."
+killall -9 sing-box 2>/dev/null
 ./sing-box run -c run.json > /dev/null 2>&1 &
+echo ""
 echo "Ваш IP-адрес роутера: $ROUTER_IP"
-echo "Прокси: HTTP 1080 / SOCKS 1081-1083"
-echo -e "📱 SS Link: \033[1;32m$SS_LINK\033[0m"
+echo ""
+echo "📺 ДЛЯ ТЕЛЕВИЗОРА (Smart TV, Apple TV):"
+echo "  Тип:  HTTP Прокси "
+echo "  IP:   $ROUTER_IP"
+echo "  Порт: 1080"
+echo ""
+echo "💻 ДЛЯ БРАУЗЕРОВ (ПК) И TELEGRAM:"
+echo "  Тип:  SOCKS5 "
+echo "  IP:   $ROUTER_IP"
+echo "  Порт: 1081 (а также 1082, 1083)"
+echo ""
+echo "📱 ДЛЯ ТЕЛЕФОНОВ (v2rayNG / NekoBox / Streisand):"
+echo "  Скопируйте эту ссылку:"
+echo -e "  \033[1;32m$SS_LINK\033[0m"
 echo "=================================================="
+echo ""
