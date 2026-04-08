@@ -218,11 +218,31 @@ cat << EOF > base.json
   "log": { "level": "info", "timestamp": true },
   "dns": {
     "servers": [
-      { "tag": "google-udp", "type": "udp", "server": "8.8.8.8" },
-      { "tag": "cf-doh", "type": "https", "server": "cloudflare-dns.com", "domain_resolver": "google-udp" }
+      { "tag": "yandex-udp", "type": "udp", "server": "77.88.8.8" },
+      { "tag": "cf-doh", "type": "https", "server": "1.1.1.1", "server_name": "cloudflare-dns.com" },
+      { "tag": "cf-dot", "type": "tls", "server": "1.0.0.1", "server_name": "cloudflare-dns.com" },
+      { "tag": "cf-doq", "type": "quic", "server": "1.1.1.1", "server_name": "cloudflare-dns.com" },
+      { "tag": "google-doh", "type": "https", "server": "8.8.8.8", "server_name": "dns.google" },
+      { "tag": "google-dot", "type": "tls", "server": "8.8.4.4", "server_name": "dns.google" },
+      { "tag": "quad9-doh", "type": "https", "server": "9.9.9.9", "server_name": "dns.quad9.net" },
+      { "tag": "quad9-dot", "type": "tls", "server": "149.112.112.112", "server_name": "dns.quad9.net" },
+      { "tag": "quad9-doq", "type": "quic", "server": "9.9.9.9", "server_name": "dns.quad9.net" },
+      { "tag": "adguard-doh", "type": "https", "server": "94.140.14.14", "server_name": "dns.adguard-dns.com" },
+      { "tag": "adguard-dot", "type": "tls", "server": "94.140.14.15", "server_name": "dns.adguard-dns.com" },
+      { "tag": "adguard-doq", "type": "quic", "server": "94.140.14.14", "server_name": "dns.adguard-dns.com" },
+      { "tag": "alidns-doh", "type": "https", "server": "223.5.5.5", "server_name": "dns.alidns.com" },
+      { "tag": "alidns-doq", "type": "quic", "server": "223.6.6.6", "server_name": "dns.alidns.com" },
+      { "tag": "mullvad-doh", "type": "https", "server": "194.242.2.2", "server_name": "dns.mullvad.net" },
+      { "tag": "mullvad-dot", "type": "tls", "server": "194.242.2.3", "server_name": "dns.mullvad.net" }
     ],
+    "rules": [
+      { "rule_set": ["geoip-ru"], "server": "yandex-udp" },
+      { "outbound": ["any"], "server": "cf-doh" }
+    ],
+    "final": "google-doh",
     "strategy": "prefer_ipv4",
-    "final": "cf-doh"
+    "disable_cache": false,
+    "independent_cache": true
   },
   "inbounds": [
     { "type": "http", "tag": "http-tv", "listen": "0.0.0.0", "listen_port": 1080 },
@@ -247,6 +267,12 @@ cat << EOF > base.json
   }
 }
 EOF
+
+# Патчим конфиг, если юзер выбрал [ 1 ] Украина (UA)
+if [ "$PROFILE" = "UA" ]; then
+    echo "  -> Активация режима Full DoH (удаление серверов Яндекса)..."
+    jq 'del(.dns.servers[] | select(.tag=="yandex-udp")) | del(.dns.rules[] | select(.server=="yandex-udp"))' base.json > base_tmp.json && mv base_tmp.json base.json
+fi
 
 # === 7. СКАЧИВАНИЕ СКРИПТОВ И ДИНАМИЧЕСКИХ КОНФИГОВ ===
 echo "[5/6] Загрузка скриптов сборки туннелей..."

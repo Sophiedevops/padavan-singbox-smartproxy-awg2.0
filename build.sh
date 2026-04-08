@@ -1,26 +1,98 @@
 #!/bin/sh
-
-cd /opt/awg2_singbox || exit 1
-
-echo ">>> Начинаем сборку конфигурации из configs/*.conf"
+# ===================================================================
+# ИДЕАЛЬНЫЙ СБОРЩИК: Фильтр мертвых серверов + Lua Парсер + JQ Мердж
+# ===================================================================
 
 CONFIG_DIR="configs"
 BASE_JSON="base.json"
 RUN_JSON="run.json"
 LUA_SCRIPT="parse_conf.lua"
 
+REQUIRE_PING=0 
+TIMEOUT=2
+
+echo ">>> Запуск расширенной проверки серверов (DoH + UDP DNS)..."
+
+get_server_addr() {
+    grep -im 1 "^[[:space:]]*Endpoint" "$1" | awk -F '=' '{print $2}' | tr -d ' ' | sed 's/:[0-9]*$//' | tr -d '[]'
+}
+
+resolve_domain() {
+    local domain="$1"
+    local ip=""
+    
+    ip=$(ping -c 1 -W 1 "$domain" 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -n1)
+    if [ -n "$ip" ] && [ "$ip" != "127.0.0.1" ]; then echo "$ip"; return 0; fi
+    
+    ip=$(wget --no-check-certificate -qO- "https://dns.google/resolve?name=$domain&type=A" 2>/dev/null | grep -oE '"data":"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"' | head -n 1 | awk -F'"' '{print $4}')
+    if [ -n "$ip" ]; then echo "$ip"; return 0; fi
+
+    ip=$(wget --no-check-certificate -qO- "https://dns.alidns.com/resolve?name=$domain&type=1" 2>/dev/null | grep -oE '"data":"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"' | head -n 1 | awk -F'"' '{print $4}')
+    if [ -n "$ip" ]; then echo "$ip"; return 0; fi
+
+    ip=$(wget --no-check-certificate -qO- --header="accept: application/dns-json" "https://cloudflare-dns.com/dns-query?name=$domain&type=A" 2>/dev/null | grep -oE '"data":"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+"' | head -n 1 | awk -F'"' '{print $4}')
+    if [ -n "$ip" ]; then echo "$ip"; return 0; fi
+
+    local dns_list="77.88.8.8 94.140.14.14 8.8.8.8 1.1.1.1 223.5.5.5 9.9.9.9"
+    for dns in $dns_list; do
+        ip=$(nslookup "$domain" "$dns" 2>/dev/null | awk '/^Name:/ {in_answer=1} in_answer && /^Address/ {print}' | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
+        if [ -n "$ip" ]; then echo "$ip"; return 0; fi
+    done
+
+    return 1
+}
+
+rm -rf configs_valid
+mkdir -p configs_valid
+
+# === БЛОК ПРОВЕРКИ (ОТБРАКОВКА МЕРТВЫХ СЕРВЕРОВ) ===
+for FILE in "$CONFIG_DIR"/*.conf; do
+    [ -e "$FILE" ] || continue
+    FILENAME=$(basename "$FILE")
+    ADDR=$(get_server_addr "$FILE")
+    
+    if [ -z "$ADDR" ]; then
+        echo "⚠️  АЛЕРТ: В $FILENAME не найден Endpoint! Пропускаем."
+        continue
+    fi
+
+    TARGET_IP="$ADDR"
+
+    if echo "$ADDR" | grep -q '[A-Za-z]'; then
+        TARGET_IP=$(resolve_domain "$ADDR")
+        if [ -z "$TARGET_IP" ]; then
+            echo "❌ АЛЕРТ: Домен $ADDR ($FILENAME) мертв! Выкидываем."
+            continue
+        fi
+        echo "✅ Домен $ADDR жив -> $TARGET_IP"
+    else
+        echo "✅ В $FILENAME указан чистый IP: $TARGET_IP"
+    fi
+
+    if [ "$REQUIRE_PING" -eq 1 ]; then
+        if ! ping -c 1 -W "$TIMEOUT" "$TARGET_IP" >/dev/null 2>&1; then
+            echo "⚠️  АЛЕРТ: IP $TARGET_IP ($FILENAME) не отвечает на PING! Выкидываем."
+            continue
+        fi
+    fi
+
+    cp "$FILE" "configs_valid/$FILENAME"
+done
+
+
+# === БЛОК УМНОЙ СБОРКИ ИЗ СТАРОГО СКРИПТА ===
 EP_ARRAY="/tmp/sb_eps_$$.json"
 TAGS_ARRAY="/tmp/sb_tags_$$.json"
 
 echo "[]" > "$EP_ARRAY"
 echo "[]" > "$TAGS_ARRAY"
 
-echo ">>> Начинаем сборку конфигурации из $CONFIG_DIR/*.conf"
+echo ">>> Начинаем сборку конфигурации из живых серверов..."
 
-for conf_file in "$CONFIG_DIR"/*.conf; do
+for conf_file in configs_valid/*.conf; do
     [ -e "$conf_file" ] || continue
     tag_name=$(basename "$conf_file" .conf)
-    echo -n "Обработка: $tag_name... "
+    echo -n "Конвертация: $tag_name... "
     
     ep_json=$(lua "$LUA_SCRIPT" "$conf_file" "$tag_name")
     
@@ -37,20 +109,11 @@ for conf_file in "$CONFIG_DIR"/*.conf; do
     fi
 done
 
-URLTEST_OUTBOUND=$(jq -n --argjson tags "$(cat "$TAGS_ARRAY")" '{
-  type: "urltest",
-  tag: "auto-balancer",
-  outbounds: $tags,
-  url: "https://www.cloudflare.com/cdn-cgi/trace",
-  interval: "3m",
-  tolerance: 50
-}')
+# ПЛОСКИЕ КОМАНДЫ БЕЗ ПЕРЕНОСОВ ДЛЯ BUSYBOX
+URLTEST_OUTBOUND=$(jq -n --argjson tags "$(cat "$TAGS_ARRAY")" '{"type":"urltest","tag":"auto-balancer","outbounds":$tags,"url":"https://www.cloudflare.com/cdn-cgi/trace","interval":"3m","tolerance":100}')
 
-# Сборка финального конфига БЕЗ перетирания route.final
-jq --argjson eps "$(cat "$EP_ARRAY")" \
-   --argjson urltest "$URLTEST_OUTBOUND" \
-   '.endpoints = ($eps + (.endpoints // [])) | 
-    .outbounds = ([$urltest] + (.outbounds // []))' "$BASE_JSON" > "$RUN_JSON"
+jq --argjson eps "$(cat "$EP_ARRAY")" --argjson urltest "$URLTEST_OUTBOUND" '.endpoints = ($eps + (.endpoints // [])) | .outbounds = ([$urltest] + (.outbounds // []))' "$BASE_JSON" > "$RUN_JSON"
 
 rm -f "$EP_ARRAY" "$TAGS_ARRAY" "${EP_ARRAY}.tmp" "${TAGS_ARRAY}.tmp"
-echo ">>> Сборка завершена. Результат в $RUN_JSON"
+rm -rf configs_valid
+echo ">>> Сборка успешно завершена! Создан $RUN_JSON с новыми DNS правилами."
